@@ -1,0 +1,18 @@
+# Lean build files
+.lake/
+build/
+lake-packages/
+
+# Editor files
+*.olean
+*.ilean
+*.c
+*.h
+.DS_Store
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.bak
+*~
