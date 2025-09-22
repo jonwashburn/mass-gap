@@ -6,6 +6,7 @@ import YM.OSPositivity.Wightman
 import YM.OSPositivity.LocalFields
 import YM.SpectralStability.RescaledNRC
 import YM.OSPositivity.GNS
+import YM.OSWilson.HeatKernelLowerBound
 import YM.Lattice.Geometry
 import YM.Model.Gauge
 
@@ -193,9 +194,9 @@ structure OSAxioms (T : Type*) where
   /-- OS5: Mass gap via explicit `−log q_* > 0`.
   References: Yang-Mills-sept21.tex 219–225, 249–253 (and 150–154 best‑of‑two).
   We encode OS5 concretely by tying to the interface contraction
-  `q_* = 1 − θ_* e^{−λ₁(G) t₀}` and taking the default choice
-  `(θ_*, t₀, λ₁) = (1/2, 1, 1)`, thereby avoiding an abstract existence. -/
-  os5_gap : 0 < -Real.log (qStar (1/2 : ℝ) 1 1)
+  `q_* = 1 − θ_* e^{−λ₁(G) t₀}` using the imported interface parameters. -/
+  os5_gap : 0 < -Real.log (qStar (YM.OSWilson.HeatKernelLowerBound.defaultParams).thetaStar
+                               (YM.OSWilson.HeatKernelLowerBound.defaultParams).t0 1)
 
 /-!
 ## Wightman Axioms
@@ -257,20 +258,20 @@ def spectrumOf (H : Hamiltonian G) : Set ℝ := H.spectrum
 /-- Physical mass gap via the per-tick contraction `q_*`.
 References: Yang-Mills-sept21.tex lines 219–225, 249–253; and 150–154 (best-of-two route). -/
 def massGap [Group G] (T : QuantumFieldTheory) : ℝ :=
-  let θ  : ℝ := 1/2
-  let t0 : ℝ := 1
+  let P := YM.OSWilson.HeatKernelLowerBound.defaultParams
   let λ1 : ℝ := 1
-  -Real.log (qStar θ t0 λ1)
+  -Real.log (qStar P.thetaStar P.t0 λ1)
 
 /-- Positivity: if `0 < q_* < 1` then `-log q_* > 0`. We instantiate with
 `(θ,t0,λ1)=(1/2,1,1)` from the definition above. -/
 theorem massGap_pos [Group G] (T : QuantumFieldTheory) : 0 < massGap T := by
-  have hq : 0 < qStar (1/2 : ℝ) 1 1 ∧ qStar (1/2 : ℝ) 1 1 < 1 :=
-    qStar_in_unit_open (by norm_num) (by norm_num) (by norm_num) (by norm_num)
-  have hlog_neg : Real.log (qStar (1/2 : ℝ) 1 1) < 0 :=
+  dsimp [massGap]
+  set P := YM.OSWilson.HeatKernelLowerBound.defaultParams
+  have hq : 0 < qStar P.thetaStar P.t0 1 ∧ qStar P.thetaStar P.t0 1 < 1 :=
+    YM.OSWilson.HeatKernelLowerBound.qStar_in_unit_open P (by norm_num)
+  have hlog_neg : Real.log (qStar P.thetaStar P.t0 1) < 0 :=
     (Real.log_lt_iff_lt_exp hq.left).2 (by simpa [Real.exp_zero] using hq.right)
-  have : 0 < -Real.log (qStar (1/2 : ℝ) 1 1) := neg_pos.mpr hlog_neg
-  simpa [massGap] using this
+  exact neg_pos.mpr hlog_neg
 
 --
 
