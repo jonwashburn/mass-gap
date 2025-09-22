@@ -1,5 +1,6 @@
 import Mathlib
 import YM.OSWilson.DoeblinExplicit
+import YM.OSWilson.HeatKernelLowerBound
 
 /-!
 Odd-cone/mean-zero sector contraction (ℝ-native).
@@ -36,10 +37,9 @@ theorem gamma0_pos (c : PerTick) : 0 < gamma0 c := by
 parameters `(θ_*, t₀) = (1/2,1)` and any `λ₁(G) > 0` via
 `q_* = 1 − θ_* e^{−λ₁ t₀}`. -/
 def build_perTick {N : ℕ} [Fact (1 < N)] (λ1 : ℝ) (hλ1_pos : 0 < λ1) : PerTick :=
-  let P := YM.OSWilson.DoeblinExplicit.build_minorization_sketch (N := N)
-  let q := YM.OSWilson.DoeblinExplicit.q_star (N := N)
+  let q := YM.OSWilson.DoeblinExplicit.q_star (N := N) λ1
   have h : 0 < q ∧ q < 1 :=
-    YM.OSWilson.DoeblinExplicit.q_star_in_unit_interval (N := N)
+    YM.OSWilson.DoeblinExplicit.q_star_in_unit_interval (N := N) hλ1_pos
   { q := q, q_pos := h.left, q_lt_one := h.right }
 
 /-- The associated `γ₀` is positive for any `λ₁(G) > 0`. -/

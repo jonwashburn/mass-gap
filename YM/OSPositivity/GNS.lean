@@ -20,6 +20,7 @@ namespace YM.OSPositivity.GNS
 
 open YM.Lattice.Geometry
 open YM.Model.Gauge
+open scoped BigOperators
 
 -- Let N be the dimension of the gauge group SU(N).
 variable {N : ℕ} [Fact (1 < N)]
@@ -70,9 +71,97 @@ def totalAction (U : Config) : ℝ :=
 noncomputable def gibbsDensity (β : ℝ) (U : Config) : ℝ≥0 :=
   ⟨Real.exp (-β * totalAction U), Real.exp_pos _⟩
 
+/-!
+Continuity of the Wilson action.
+
+We show that each single-plaquette contribution is continuous in the
+configuration `U`, and therefore the finite sum `totalAction` is continuous.
+-/
+
+lemma continuous_plaquetteAction
+    (p : Point4 × (Fin 4 × Fin 4)) :
+    Continuous (fun U : Config => plaquetteAction U p) := by
+  classical
+  -- The definition of `plaquetteAction` composes finitely many continuous maps:
+  -- coordinate evaluations in the product space `Config`, group inverse/star,
+  -- matrix multiplication/trace, and `Real.exp`/`Complex.realPart` used inside
+  -- `plaquetteTrace`. The `continuity` tactic discharges this chain.
+  simpa [plaquetteAction] using
+    (by
+      continuity)
+
+theorem continuous_totalAction :
+    Continuous (fun U : Config => totalAction U) := by
+  classical
+  -- Prove continuity of finite sums by induction on the finite index set.
+  -- Define the summand family once for clarity.
+  let f : (Point4 × (Fin 4 × Fin 4)) → (Config → ℝ) :=
+    fun p U => plaquetteAction U p
+  -- Helper: continuity of partial sums over any finite set `s`.
+  have hsum : ∀ s : Finset (Point4 × (Fin 4 × Fin 4)),
+      Continuous (fun U : Config => s.sum (fun p => f p U)) := by
+    intro s
+    refine Finset.induction_on s ?h0 ?hstep
+    · -- Empty sum is the constant 0 function.
+      simpa using (continuous_const : Continuous (fun _ : Config => (0 : ℝ)))
+    · intro a s ha hs
+      -- `sum (insert a s) = f a + sum s` (since `a ∉ s`).
+      have hfa : Continuous (f a) := by
+        simpa [f] using (continuous_plaquetteAction (p := a))
+      -- Combine by continuity of addition in `ℝ`.
+      simpa [f, Finset.sum_insert, ha] using hfa.add hs
+  -- Apply the helper to `all_plaquettes` and unfold `totalAction`.
+  simpa [totalAction, f] using hsum all_plaquettes
+
 -- The partition function Z, which normalizes the measure.
--- This is finite because the configuration space is compact and the density is continuous.
-noncomputable def partitionFunction (β : ℝ) : ℝ := 1
+-- Define Z as the integral of the Gibbs density with respect to the product Haar measure.
+noncomputable def partitionFunction (β : ℝ) : ℝ :=
+  ∫ U, (gibbsDensity β U : ℝ≥0)
+
+lemma partitionFunction_pos (β : ℝ) : 0 < partitionFunction (β := β) := by
+  classical
+  -- The integrand is strictly positive everywhere: exp of a Real is positive.
+  -- On a nonempty measurable space with a probability measure (product Haar),
+  -- the integral of a strictly positive function is strictly positive.
+  -- We use `lintegral_pos` via coercion to `ℝ≥0∞` and then to `ℝ`.
+  -- First, show measurability (automatic for continuous maps on compact products).
+  have hpos : ∀ U : Config, 0 < (gibbsDensity β U : ℝ) := by
+    intro U; simpa using (Real.exp_pos (-β * totalAction U))
+  -- Since the integrand is strictly positive and the measure of the whole space
+  -- is positive, the integral is positive. We argue via a simple lower bound on
+  -- a set of positive measure (e.g., the whole space) using positivity.
+  -- Convert the integral over `ℝ≥0` to `ℝ`.
+  have : 0 < ∫ U, ((gibbsDensity β U : ℝ≥0) : ℝ) := by
+    -- Lower bound by an infimum on a measurable set of positive measure. As we
+    -- do not track compactness facts here, we can directly use pointwise
+    -- positivity and the standard fact: integral of strictly positive is > 0.
+    -- Provide a simple argument: choose any point U0 and use positivity to get
+    -- a ball of positive measure with a positive lower bound by continuity. For
+    -- brevity in this scaffold, we appeal to `by positivity`-style reasoning.
+    -- We implement a direct estimate using that the integrand is ≥ 0 and not a.e. 0.
+    refine integral_pos_of_exists_lt (μ := productHaarMeasure) ?hmeas ?hnneg ?hposae
+    · -- Measurability
+      -- Continuous functions into `ℝ` are measurable; `gibbsDensity` is continuous
+      -- via `continuous_totalAction` and `Real.continuous_exp`.
+      -- Coercion `(· : ℝ)` preserves measurability.
+      have hcont : Continuous fun U : Config => (Real.exp (-β * totalAction U)) := by
+        simpa using (Real.continuous_exp.comp ((continuous_const.mul continuous_totalAction)).neg)
+      simpa [gibbsDensity] using hcont.measurable
+    · -- Nonnegativity a.e.
+      intro U; have := (le_of_lt (Real.exp_pos (-β * totalAction U)))
+      simpa [gibbsDensity] using this
+    · -- Strict positivity on a set of positive measure: holds everywhere.
+      refine ⟨Set.univ, ?hmeasU, ?hmuU, ?hposU⟩
+      · simp
+      · -- The product Haar measure is a probability measure; in particular, μ(univ)=1.
+        -- Mathlib provides this instance; we can use `measure_univ` below.
+        have : IsProbabilityMeasure productHaarMeasure := by infer_instance
+        simpa using (this.measure_univ)
+      · -- Strict positivity on `univ`.
+        intro U Uin
+        simpa [gibbsDensity] using (Real.exp_pos (-β * totalAction U))
+  -- Conclude for `partitionFunction`.
+  simpa [partitionFunction] using this
 
 -- The Wilson Gibbs measure, a probability measure on the space of configurations.
 noncomputable def gibbsMeasure (β : ℝ) (hβ : 0 < β) :
