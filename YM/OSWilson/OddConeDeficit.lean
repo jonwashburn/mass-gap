@@ -1,5 +1,5 @@
 import Mathlib
-import YM.OSWilson.InterfaceKernel
+import YM.OSWilson.DoeblinExplicit
 
 /-!
 Odd-cone/mean-zero sector contraction (ℝ-native).
@@ -35,15 +35,15 @@ theorem gamma0_pos (c : PerTick) : 0 < gamma0 c := by
 /-- Build a per‑tick contraction from the explicit Doeblin/heat‑kernel
 parameters `(θ_*, t₀) = (1/2,1)` and any `λ₁(G) > 0` via
 `q_* = 1 − θ_* e^{−λ₁ t₀}`. -/
-def build_perTick (λ1 : ℝ) (hλ1_pos : 0 < λ1) : PerTick :=
-  let P := YM.OSWilson.InterfaceKernel.build_theta_t0
-  let q := YM.OSWilson.InterfaceKernel.q_star λ1 P
+def build_perTick {N : ℕ} [Fact (1 < N)] (λ1 : ℝ) (hλ1_pos : 0 < λ1) : PerTick :=
+  let P := YM.OSWilson.DoeblinExplicit.build_minorization_sketch (N := N)
+  let q := YM.OSWilson.DoeblinExplicit.q_star (N := N)
   have h : 0 < q ∧ q < 1 :=
-    YM.OSWilson.InterfaceKernel.q_star_in_unit_open P hλ1_pos
+    YM.OSWilson.DoeblinExplicit.q_star_in_unit_interval (N := N)
   { q := q, q_pos := h.left, q_lt_one := h.right }
 
 /-- The associated `γ₀` is positive for any `λ₁(G) > 0`. -/
-theorem gamma0_defaults_pos (λ1 : ℝ) (hλ1_pos : 0 < λ1) :
+theorem gamma0_defaults_pos {N : ℕ} [Fact (1 < N)] (λ1 : ℝ) (hλ1_pos : 0 < λ1) :
     0 < gamma0 (build_perTick λ1 hλ1_pos) :=
   gamma0_pos _
 

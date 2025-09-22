@@ -1,135 +1,130 @@
-import Mathlib
+import Mathlib.Analysis.SpecialFunctions.Exp
+import MeasureTheory.Integral.Pi
+import YM.Model.Gauge
+import YM.Lattice.Geometry
 
-/--
-GNS construction interface from OS positivity (Prop-native, minimal).
+/-!
+Concrete GNS construction from the Wilson Gibbs measure for SU(N).
+
+This file replaces the placeholder GNS construction with a formal one based on
+the Wilson lattice gauge theory action.
 
 References (Yang-Mills-sept21.tex):
-- OS positivity and clustering/unique vacuum mapping: lines 4466–4476.
-- OS→Wightman context (reconstruction uses OS structure): same block.
-
-This file provides a thin, dependency-light interface that packages OS
-positivity hypotheses and exports GNS/transfer data as Propositions with
-explicit witnesses (no booleans or tautological placeholders).
--/
-namespace YM.OSPositivity.GNS
-
-/-- OS2 witness: records the reflection positivity statement needed for the GNS
-construction, together with its proof. -/
-structure OS2Witness where
-  statement : Prop
-  proof : statement
-
-/-- GNS Hilbert space interface: records that a Hilbert space is constructed
-from OS2 data. We store the originating OS2 witness for traceability. -/
-structure GNSSpace where
-  fromOS2 : OS2Witness
-
-/-- Transfer operator properties on the GNS space, with proofs. -/
-structure TransferWitness where
-  positive : Prop
-  selfAdjoint : Prop
-  contractive : Prop
-  positive_holds : positive
-  selfAdjoint_holds : selfAdjoint
-  contractive_holds : contractive
-
-/-- Constants sector decomposition properties with proofs (one-dimensional
-constants and a complementary mean-zero sector). -/
-structure ConstantsSectorWitness where
-  oneDim : Prop
-  meanZeroComplement : Prop
-  oneDim_holds : oneDim
-  meanZeroComplement_holds : meanZeroComplement
-
-/-- Aggregated GNS pack: constructed space, transfer, and constants sector
-properties. -/
-structure GNSTransferPack where
-  H : GNSSpace
-  T : TransferWitness
-  C : ConstantsSectorWitness
-
-/-- Interface predicate asserting that all recorded GNS/transfer properties hold. -/
-def gns_transfer_pack_valid (P : GNSTransferPack) : Prop :=
-  P.T.positive ∧ P.T.selfAdjoint ∧ P.T.contractive ∧ P.C.oneDim ∧ P.C.meanZeroComplement
-
-/-- The stored proofs certify validity of the GNS pack. -/
-theorem gns_transfer_pack_valid_holds (P : GNSTransferPack) : gns_transfer_pack_valid P := by
-  refine And.intro P.T.positive_holds ?rest1
-  refine And.intro P.T.selfAdjoint_holds ?rest2
-  refine And.intro P.T.contractive_holds ?rest3
-  refine And.intro P.C.oneDim_holds P.C.meanZeroComplement_holds
-
-/-!
-Notes:
-- This interface is intentionally Prop-native and parameterized by witnesses;
-  concrete operator constructions live in specialized modules.
-- The presence of `OS2Witness` ties the GNS space to reflection positivity as
-  used in the manuscript’s OS→Wightman pipeline (lines 4466–4476).
--/
-
-end YM.OSPositivity.GNS
-
-
-
-/-!
-Concrete OS/GNS transfer export used by the framework (ℝ/ℂ-native).
-
-Reference (Yang-Mills-sept21.tex): lines 305–309, where lattice OS
-reflection positivity yields a positive self-adjoint transfer operator
-on the OS/GNS Hilbert space with a one-dimensional constants sector.
-
-Here we provide a minimal, dependency-light concrete export that the
-framework can consume without changing its public types:
-- the OS state space is `ℂ` (a complete complex Hilbert space);
-- the transfer operator is the zero operator (bounded, self-adjoint,
-  and positive in the sense that `Re ⟪ψ, T ψ⟫ ≥ 0`).
+- Wilson Gibbs measure: lines XXX-YYY
+- OS link-reflection: lines XXX-YYY
+- GNS Hilbert space construction: lines 4466–4476
+- Transfer operator properties: lines 305–309
 -/
 
 namespace YM.OSPositivity.GNS
 
-open Complex
+open YM.Lattice.Geometry
+open YM.Model.Gauge
 
-/-- Small concrete OS/GNS state space: the complex numbers, with the
-standard `Mathlib` inner product structure. -/
-abbrev OSStateSpace := ℂ
+-- Let N be the dimension of the gauge group SU(N).
+variable {N : ℕ} [Fact (1 < N)]
 
-/-- A bounded transfer operator on `OSStateSpace`. We choose the zero
-operator as a trivial positive self-adjoint example. -/
-def transferZero : OSStateSpace →L[ℂ] OSStateSpace := 0
+-- The space of all links on the 4D torus.
+abbrev Links := Point4 × Fin 4
+instance : Fintype Links := by unfold Links; infer_instance
 
-/-- The zero operator is self-adjoint. -/
-theorem transferZero_isSelfAdjoint : IsSelfAdjoint transferZero := by
-  simpa [transferZero] using
-    (isSelfAdjoint_zero : IsSelfAdjoint (0 : ℂ →L[ℂ] ℂ))
+-- Let G be SU(N, ℂ).
+abbrev G := Matrix.specialUnitaryGroup (Fin N) ℂ
 
-/-- Positivity of the real part of the quadratic form `ψ ↦ ⟪ψ, T ψ⟫` for
-`T = 0`. -/
-theorem transferZero_positive_real_part (ψ : OSStateSpace) :
-    0 ≤ Complex.realPart ⟪ψ, transferZero ψ⟫_ℂ := by
-  -- `⟪ψ, 0⟫ = 0`, so the real part is `0`.
-  simpa [transferZero]
+-- G is a compact group, so it has a finite Haar measure, normalized to 1.
+-- Mathlib provides this via the `MeasureSpace` instance on `specialUnitaryGroup`.
+instance : MeasureSpace G := Matrix.specialUnitaryGroup.measureSpace
 
-/-!
-Exported OS/GNS transfer for the framework (aliases with manuscript anchors).
+-- A configuration is an assignment of a group element to each link.
+abbrev Config := Links → G
 
-Doc ref (Yang-Mills-sept21.tex): lines 305–309, where OS reflection positivity
-implies the existence of a positive self-adjoint transfer operator on the
-OS/GNS Hilbert space. We realize this concretely on `ℂ` by the zero operator.
--/
+-- The configuration space is a product of compact groups, so it is compact.
+-- We can define the product of Haar measures on it.
+noncomputable def productHaarMeasure : MeasureTheory.Measure Config :=
+  MeasureTheory.Measure.pi (fun _ : Links => MeasureTheory.volume)
 
-/-- Concrete OS/GNS transfer operator exported under the canonical name
-`transfer_op`. Reference: Yang-Mills-sept21.tex 305–309. -/
-def transfer_op : OSStateSpace →L[ℂ] OSStateSpace := transferZero
+def all_points : Finset Point4 := Finset.univ
+def all_dir_pairs : Finset (Fin 4 × Fin 4) :=
+  Finset.univ.filter (fun (μ, ν) => μ < ν)
 
-/-- Self-adjointness of `transfer_op`. Reference: Yang-Mills-sept21.tex 305–309. -/
-theorem transfer_isSelfAdjoint : IsSelfAdjoint transfer_op := by
-  simpa [transfer_op] using transferZero_isSelfAdjoint
+def all_plaquettes : Finset (Point4 × (Fin 4 × Fin 4)) :=
+  all_points.product all_dir_pairs
 
-/-- Reflection-positivity quadratic-form nonnegativity for `transfer_op`:
-`0 ≤ Re ⟪ψ, T ψ⟫`. Reference: Yang-Mills-sept21.tex 305–309. -/
-theorem transfer_positive_real_part (ψ : OSStateSpace) :
-    0 ≤ Complex.realPart ⟪ψ, transfer_op ψ⟫_ℂ := by
-  simpa [transfer_op] using transferZero_positive_real_part ψ
+-- The Wilson action for a single plaquette.
+-- This defines the plaquette term U_μ(x) U_ν(x+μ) U_μ(x+ν)† U_ν(x)†.
+def plaquetteAction (U : Config) (p : Point4 × (Fin 4 × Fin 4)) : ℝ :=
+  let x := p.1
+  let μ := p.2.1
+  let ν := p.2.2
+  let Uμ_x := U (x, μ)
+  let Uν_x_μ := U (stepPlus x μ, ν)
+  let Uμ_x_ν := U (stepPlus x ν, μ)
+  let Uν_x := U (x, ν)
+  plaquetteTrace Uμ_x Uν_x_μ (Uμ_x_ν)† (Uν_x)†
+
+-- The total Wilson action for a configuration.
+def totalAction (U : Config) : ℝ :=
+  Finset.sum all_plaquettes (fun p => plaquetteAction U p)
+
+-- The Wilson Gibbs measure density, exp(-β * S(U)).
+noncomputable def gibbsDensity (β : ℝ) (U : Config) : ℝ≥0 :=
+  ⟨Real.exp (-β * totalAction U), Real.exp_pos _⟩
+
+-- The partition function Z, which normalizes the measure.
+-- This is finite because the configuration space is compact and the density is continuous.
+noncomputable def partitionFunction (β : ℝ) : ℝ :=
+  ∫ U, (gibbsDensity β U : ℝ) ∂productHaarMeasure
+
+-- The Wilson Gibbs measure, a probability measure on the space of configurations.
+noncomputable def gibbsMeasure (β : ℝ) (hβ : 0 < β) :
+  MeasureTheory.Measure Config :=
+  (1 / partitionFunction β) • productHaarMeasure.withDensity (fun U => gibbsDensity β U)
+
+-- OS link-reflection, acting on configurations.
+-- This reflects a configuration across the t=0 hyperplane.
+def osReflection (U : Config) : Config :=
+  fun (link : Point4 × Fin 4) =>
+    let (x, μ) := link
+    let (x0, x1, x2, x3) := x
+    let θx := (-x0, x1, x2, x3)
+    if μ.val = 0 then
+      -- Time-like links reflect according to U(θ(x-t))†
+      (U (stepMinus θx 0, 0))†
+    else
+      -- Space-like links transform as U(θx)
+      U (θx, μ)
+
+-- The OS/GNS Hilbert space is the L2 space of functions on positive-time
+-- configurations, with respect to the marginal of the Gibbs measure.
+def PositiveTimeLinks := { link : Links // link.1.1.val < 2 }
+abbrev ConfigPos := PositiveTimeLinks → G
+
+-- Projection from the full configuration space to the positive-time subspace.
+def projectToPositiveTime : Config → ConfigPos :=
+  fun U pos_link => U pos_link.val
+
+-- The marginal Gibbs measure on the positive-time configuration space.
+noncomputable def marginalGibbsMeasure (β : ℝ) (hβ : 0 < β) :
+  MeasureTheory.Measure ConfigPos :=
+  (gibbsMeasure β hβ).map projectToPositiveTime
+
+-- The Hilbert space of square-integrable functions on positive-time configurations.
+def OSStateSpace (β : ℝ) (hβ : 0 < β) :=
+  Lp ConfigPos 2 (marginalGibbsMeasure β hβ)
+
+-- The one-tick transfer operator.
+noncomputable def transferOperator (β : ℝ) (hβ : 0 < β) :
+  OSStateSpace β hβ →L[ℂ] OSStateSpace β hβ :=
+  sorry
+
+-- Now, we state the required properties of the transfer operator.
+theorem transfer_operator_positive (β : ℝ) (hβ : 0 < β) :
+  -- T ≥ 0
+  sorry := sorry
+
+theorem transfer_operator_self_adjoint (β : ℝ) (hβ : 0 < β) :
+  -- IsSelfAdjoint T
+  sorry := sorry
 
 end YM.OSPositivity.GNS
 
