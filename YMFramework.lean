@@ -268,7 +268,7 @@ theorem massGap_pos [Group G] (T : QuantumFieldTheory) : 0 < massGap T := by
   dsimp [massGap]
   set P := YM.OSWilson.HeatKernelLowerBound.defaultParams
   have hq : 0 < qStar P.thetaStar P.t0 1 ∧ qStar P.thetaStar P.t0 1 < 1 :=
-    YM.OSWilson.HeatKernelLowerBound.qStar_in_unit_open P (by norm_num)
+    qStar_in_unit_open P.theta_pos P.theta_le_one P.t0_pos (by norm_num)
   have hlog_neg : Real.log (qStar P.thetaStar P.t0 1) < 0 :=
     (Real.log_lt_iff_lt_exp hq.left).2 (by simpa [Real.exp_zero] using hq.right)
   exact neg_pos.mpr hlog_neg

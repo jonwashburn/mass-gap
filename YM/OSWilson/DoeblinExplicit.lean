@@ -11,21 +11,16 @@ namespace YM.OSWilson.DoeblinExplicit
 
 open YM.OSWilson.HeatKernelLowerBound
 
-/-- Tiny explicit minorization witness `(θ*, t0)` (ℝ-native). -/
-structure MinorizationSketch where
-  thetaStar : ℝ
-  t0        : ℝ
-  theta_pos : 0 < thetaStar
-  theta_le_one : thetaStar ≤ 1
-  t0_pos    : 0 < t0
+/-- Alias: the explicit minorization witness equals the heat-kernel interface parameters. -/
+abbrev MinorizationSketch := InterfaceParams
 
-/-- Concrete builder: `(θ*, t0)` derived from heat kernel bounds. -/
+/-- Concrete builder: `(θ*, t0)` obtained from the Reality-driven defaults. -/
 def build_minorization_sketch {N : ℕ} [Fact (1 < N)] : MinorizationSketch :=
-  derivedInterfaceParams N
+  defaultParams
 
 theorem build_minorization_sketch_holds {N : ℕ} [Fact (1 < N)] :
   (0 < (build_minorization_sketch (N := N)).thetaStar) ∧ (0 < (build_minorization_sketch (N := N)).t0) :=
-  ⟨(derivedInterfaceParams N).theta_pos, (derivedInterfaceParams N).t0_pos⟩
+  ⟨defaultParams.theta_pos, defaultParams.t0_pos⟩
 
 -- The first non-zero eigenvalue of the Laplace-Beltrami operator on SU(N).
 -- This is a positive constant that depends on the geometry of the group.

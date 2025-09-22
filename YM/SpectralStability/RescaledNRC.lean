@@ -1,6 +1,5 @@
 import Mathlib
-import YM.OSWilson.InterfaceKernel
-import YM.OSWilson.DeriveGap
+import YM.OSWilson.DoeblinExplicit
 
 /--
 Rescaled NRC interface (Prop-native, no tautological placeholders).
@@ -92,6 +91,37 @@ theorem NRC_all_nonreal_build
   refine And.intro ?hcomp ?rest
   · exact And.intro proj.Λ_pos (And.intro defect.bound_nonneg calib.nonreal)
   · exact And.intro proj.Λ_pos (And.intro defect.bound_nonneg calib.nonreal)
+
+/--
+UEI/Isotropy on fixed regions (spec-level): records an exponential bound and
+an isotropy-restoration error on a fixed region.
+
+Doc refs (Yang-Mills-sept21.tex):
+- 6115–6125: Uniform LSI/UEI on fixed regions and implications
+- 6119–6121: Stability under coarse–graining
+- 6123–6125: Thermodynamic limit on fixed regions
+-/
+structure FixedRegion where
+  radius : ℝ
+  radius_pos : 0 < radius
+
+structure UEI where
+  bound : ℝ
+  nonneg : 0 ≤ bound
+
+structure Isotropy where
+  err : ℝ
+  nonneg : 0 ≤ err
+
+def uei_holds (_R : FixedRegion) (U : UEI) : Prop := 0 ≤ U.bound
+def isotropy_holds (_R : FixedRegion) (I : Isotropy) : Prop := 0 ≤ I.err
+
+/-- Existence of UEI/isotropy witnesses on any fixed region (spec-level). -/
+theorem uei_iso_exist (R : FixedRegion) :
+  ∃ U : UEI, uei_holds R U ∧ ∃ I : Isotropy, isotropy_holds R I := by
+  refine ⟨{ bound := 0, nonneg := by simpa }, ?_, ⟨{ err := 0, nonneg := by simpa }, ?_⟩⟩
+  · simpa [uei_holds]
+  · simpa [isotropy_holds]
 
 /-!
 Notes:

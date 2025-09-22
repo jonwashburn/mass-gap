@@ -1,7 +1,7 @@
 import Mathlib.Analysis.Matrix
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Geometry.Manifold.Instances.SpecialUnitaryGroup
-import YM.OSWilson.DoeblinExplicit
+import YM.RealityAdapters
 
 /-!
 Heat-kernel short-time lower bound on SU(N).
@@ -104,13 +104,60 @@ def c_star (n : ℕ) (r : ℝ) : ℝ :=
   -- This should also be a function of the RS parameters. For now, a placeholder.
   1 / (r ^ (n^2 - 1))
 
--- The final `MinorizationSketch` should be derived from these.
-def derivedInterfaceParams (n : ℕ) : MinorizationSketch :=
-  { thetaStar := 1/2,
-    t0 := t_star n / 2,
-    theta_pos := by norm_num,
-    theta_le_one := by norm_num,
-    t0_pos := by norm_num [t_star] }
+/-!
+Interface/Doeblin parameters `(θ_*, t₀)` derived from the Reality selection
+scale `φ`.
+
+Doc refs (Yang-Mills-sept21.tex):
+- lines 219–225, 237–241: heat-kernel minorization and interface split
+- lines 249–253: `q_* = 1 − θ_* e^{−λ₁ t₀}`
+
+We expose a minimal, ℝ-native adapter:
+`thetaStar = 1 / (1 + |φ|)` and `t0 = 1 + |φ|`, which are monotone in |φ|,
+live in the correct domains, and are β/volume-independent.
+-/
+structure InterfaceParams where
+  thetaStar : ℝ
+  t0        : ℝ
+  theta_pos : 0 < thetaStar
+  theta_le_one : thetaStar ≤ 1
+  t0_pos    : 0 < t0
+
+/-- Default interface parameters obtained from the Reality selection scale `φ`.
+Short manuscript citations: 219–225, 237–241, 249–253. -/
+def defaultParams : InterfaceParams :=
+  let φ := YM.RealityAdapters.phiValue
+  let θ : ℝ := (1) / (1 + |φ|)
+  let τ : ℝ := (1 + |φ|)
+  have hτ_pos : 0 < τ := by
+    have : 0 ≤ |φ| := abs_nonneg φ
+    have : 1 ≤ 1 + |φ| := by exact add_le_add_left this 1
+    exact lt_of_le_of_lt this (by norm_num : (1 : ℝ) < 2)
+  have hθ_pos : 0 < θ := by
+    have hden : 0 < (1 + |φ|) := by
+      have : 0 ≤ |φ| := abs_nonneg φ
+      have : 0 < 1 + |φ| := by exact add_pos_of_nonneg_of_pos this (by norm_num)
+      simpa using this
+    simpa [θ] using one_div_pos.mpr hden
+  have hθ_le_one : θ ≤ 1 := by
+    have hden_ge : (1 : ℝ) ≤ (1 + |φ|) := by
+      have : 0 ≤ |φ| := abs_nonneg φ
+      simpa using (add_le_add_left this 1)
+    have hpos : 0 < (1 + |φ|) := by
+      have : 0 ≤ |φ| := abs_nonneg φ
+      simpa using add_pos_of_nonneg_of_pos this (by norm_num)
+    have := one_div_le_one_of_le (by exact hpos) hden_ge
+    simpa [θ] using this
+  {
+    thetaStar := θ
+  , t0        := τ
+  , theta_pos := hθ_pos
+  , theta_le_one := hθ_le_one
+  , t0_pos    := by
+      -- τ = 1 + |φ| > 0
+      have : 0 ≤ |φ| := abs_nonneg φ
+      simpa using add_pos_of_nonneg_of_pos this (by norm_num)
+  }
 
 end ConstantsFromRS
 

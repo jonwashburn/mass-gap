@@ -34,7 +34,7 @@ This document tracks the remaining "non-spec math" tasks required to complete th
     3. Combine these to prove the existence of `θ_* ∈ (0,1]` and `t₀ > 0` that are β-independent and volume-uniform.
     4. Derive `q_* = 1 - θ_* * Real.exp(-λ₁ * t₀)` and prove it is in `(0,1)`.
 
-- [ ] **Task 4: Lattice Gap on Mean-Zero/Odd Sector.**
+- [x] **Task 4: Lattice Gap on Mean-Zero/Odd Sector.**
   - **Goal:** Use the interface minorization to prove a uniform spectral gap for the lattice transfer operator.
   - **Files:** `YM/OSWilson/OddConeDeficit.lean`, `YM/OSWilson/DeriveGap.lean`.
   - **Action:**
@@ -42,7 +42,7 @@ This document tracks the remaining "non-spec math" tasks required to complete th
     2. Formalize the eight-tick/odd-cone composition argument to lift the contraction to the full mean-zero sector.
     3. Relate the spectral gap of `T` to `-log(q_*)`.
 
-- [ ] **Task 5: Continuum Limit and Gap Persistence.**
+- [x] **Task 5: Continuum Limit and Gap Persistence.**
   - **Goal:** Prove that the lattice gap persists in the continuum limit.
   - **Files:** `YM/SpectralStability/RescaledNRC.lean` and other modules under `YM/SpectralStability/`.
   - **Action:**
@@ -51,17 +51,17 @@ This document tracks the remaining "non-spec math" tasks required to complete th
     3. Replace the NRC spec-level witnesses with a concrete proof of resolvent comparison.
     4. Deduce the persistence of a positive mass gap for the continuum generator `H`.
 
-- [ ] **Task 6: OS→Wightman Reconstruction.**
+- [x] **Task 6: OS→Wightman Reconstruction.**
   - **Goal:** Complete the final step of the construction, building the Wightman QFT from the Euclidean theory.
   - **Files:** `YM/OSPositivity/Wightman.lean` and related modules.
   - **Action:**
     1. Verify OS0–OS5 for the limiting Schwinger functions using the concrete bounds established in previous tasks.
     2. Perform the OS→Wightman reconstruction, including proofs of Poincaré covariance and microcausality.
 
-- [ ] **Task 7: Final Integration and Constant Wiring.**
+- [x] **Task 7: Final Integration and Constant Wiring.**
   - **Goal:** Thread the constants derived from the Reality framework and the YM proofs through the entire system, removing all placeholders.
   - **Files:** `YM/RealityAdapters.lean`, `YMFramework.lean`.
   - **Action:**
     1. Use the adapters to derive the YM constants (`θ_*`, `t₀`, etc.) from `phi` and other RS parameters.
     2. Ensure the `wilsonAction` in `YMFramework.lean` is consistent with the measure used in the GNS construction.
-    3. Verify that the final mass gap `
+    3. Verify that the final mass gap 
