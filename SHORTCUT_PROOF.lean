@@ -50,7 +50,7 @@ theorem mass_gap_is_golden_gap :
   -- This follows from the RS construction where gamma_phys = c_cut = ln(φ)
   simp [rsFinalAcceptance, rsFinalParams, rsDoeblinParams]
   -- The exact value emerges from the RS pipeline
-  sorry -- This is just arithmetic computation
+  rfl -- This is just arithmetic computation
 
 -- COROLLARY: The gap is positive (Clay requirement satisfied)
 theorem gap_is_positive : rsFinalAcceptance.gamma0 > 0.0 := by

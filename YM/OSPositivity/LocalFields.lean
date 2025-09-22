@@ -22,6 +22,20 @@ theorem build_local_field_os_positive : os_positive build_local_field := by
   -- 0 ≤ 0 over ℝ
   simpa using (le_of_eq (rfl : (0 : ℝ) = 0))
 
+/-!
+Concrete gauge-invariant local field witness (spec-level):
+We expose a builder that produces a trivially OS-positive local field by
+choosing a nonnegative `norm2`. This can be replaced by a smeared clover
+energy density or Wilson-loop-based observable in richer developments.
+-/
+
+/-- Concrete local field builder (gauge-invariant placeholder). -/
+def build_gauge_invariant : LocalField :=
+  { norm2 := 0 }
+
+theorem build_gauge_invariant_os_positive : os_positive build_gauge_invariant := by
+  simpa using (le_of_eq (rfl : (0 : ℝ) = 0))
+
 end YM.OSPositivity.LocalFields
 
 

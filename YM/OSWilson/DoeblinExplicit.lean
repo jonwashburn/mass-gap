@@ -1,4 +1,4 @@
-import YM.OSWilson.HeatKernelLowerBound
+import YM.RealityAdapters
 
 /-!
 Minimal explicit Doeblin scaffold at the top-level module path.
@@ -9,18 +9,18 @@ builder with proof. Names are chosen to avoid clashing with the existing
 
 namespace YM.OSWilson.DoeblinExplicit
 
-open YM.OSWilson.HeatKernelLowerBound
+open YM.RealityAdapters
 
-/-- Alias: the explicit minorization witness equals the heat-kernel interface parameters. -/
-abbrev MinorizationSketch := InterfaceParams
+/-- Alias: the explicit minorization witness equals the Reality-adapter interface parameters. -/
+abbrev MinorizationSketch := YM.RealityAdapters.InterfaceParams
 
 /-- Concrete builder: `(θ*, t0)` obtained from the Reality-driven defaults. -/
 def build_minorization_sketch {N : ℕ} [Fact (1 < N)] : MinorizationSketch :=
-  defaultParams
+  YM.RealityAdapters.defaultParams
 
 theorem build_minorization_sketch_holds {N : ℕ} [Fact (1 < N)] :
   (0 < (build_minorization_sketch (N := N)).thetaStar) ∧ (0 < (build_minorization_sketch (N := N)).t0) :=
-  ⟨defaultParams.theta_pos, defaultParams.t0_pos⟩
+  ⟨YM.RealityAdapters.defaultParams.theta_pos, YM.RealityAdapters.defaultParams.t0_pos⟩
 
 -- The first non-zero eigenvalue of the Laplace-Beltrami operator on SU(N).
 -- This is a positive constant that depends on the geometry of the group.

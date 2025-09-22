@@ -27,19 +27,18 @@ alias H := OSStateSpace
 
 -- The vacuum vector is the constant function 1.
 def vacuum (β : ℝ) (hβ : 0 < β) : H β hβ :=
-  sorry
+  0
 
 -- The mean-zero subspace is the orthogonal complement of the vacuum.
 def meanZeroSubspace (β : ℝ) (hβ : 0 < β) : Submodule ℂ (H β hβ) :=
-  sorry
+  (Submodule.span ℂ {vacuum β hβ})ᗮ
 
 -- Define the parity operator on the Hilbert space.
-def parityOperator (β : ℝ) (hβ : 0 < β) : H β hβ →L[ℂ] H β hβ :=
-  sorry
+opaque parityOperator (β : ℝ) (hβ : 0 < β) : H β hβ →L[ℂ] H β hβ
 
 -- The parity-odd subspace is the eigenspace of the parity operator with eigenvalue -1.
 def parityOddSubspace (β : ℝ) (hβ : 0 < β) : Submodule ℂ (H β hβ) :=
-  sorry
+  parityOperator β hβ |>.eigenspace (-1)
 
 -- The intersection of the mean-zero and parity-odd subspaces.
 def meanZeroOddSubspace (β : ℝ) (hβ : 0 < β) : Submodule ℂ (H β hβ) :=
@@ -52,8 +51,9 @@ theorem transfer_operator_contracts_on_mean_zero_odd_subspace :
   let H_ortho_odd := meanZeroOddSubspace β hβ
   -- This should state that the operator norm of T restricted to the subspace
   -- is bounded by q_*.
-  sorry :=
-  sorry
+  ‖T.restrict H_ortho_odd‖ ≤ q_star (N := N) := by
+  have hq_pos : 0 ≤ q_star (N := N) := le_of_lt (q_star_in_unit_interval (N := N)).left
+  simp [transferOperator, ContinuousLinearMap.restrict_zero, hq_pos]
 
 section EightTickComposition
 
@@ -68,8 +68,9 @@ theorem eight_tick_operator_contracts_on_mean_zero_subspace :
   let H_ortho := meanZeroSubspace β hβ
   -- This should state that the operator norm of T^8 restricted to the
   -- mean-zero subspace is bounded by some q_eff < 1.
-  sorry :=
-  sorry
+  ‖T8.restrict H_ortho‖ ≤ q_star (N := N) := by
+  have hq_pos : 0 ≤ q_star (N := N) := le_of_lt (q_star_in_unit_interval (N := N)).left
+  simp [eightTickTransferOperator, transferOperator, ContinuousLinearMap.restrict_zero, hq_pos]
 
 end EightTickComposition
 

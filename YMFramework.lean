@@ -4,9 +4,12 @@ import YM.OSPositivity.Euclid
 import YM.OSWilson.Cluster
 import YM.OSPositivity.Wightman
 import YM.OSPositivity.LocalFields
+import YM.OSPositivity.LocalFields
 import YM.SpectralStability.RescaledNRC
 import YM.OSPositivity.GNS
-import YM.OSWilson.HeatKernelLowerBound
+import YM.RealityAdapters
+import YM.Continuum.Limit
+import YM.Continuum.Global
 import YM.Lattice.Geometry
 import YM.Model.Gauge
 
@@ -195,8 +198,8 @@ structure OSAxioms (T : Type*) where
   References: Yang-Mills-sept21.tex 219–225, 249–253 (and 150–154 best‑of‑two).
   We encode OS5 concretely by tying to the interface contraction
   `q_* = 1 − θ_* e^{−λ₁(G) t₀}` using the imported interface parameters. -/
-  os5_gap : 0 < -Real.log (qStar (YM.OSWilson.HeatKernelLowerBound.defaultParams).thetaStar
-                               (YM.OSWilson.HeatKernelLowerBound.defaultParams).t0 1)
+  os5_gap : 0 < -Real.log (qStar (YM.RealityAdapters.defaultParams).thetaStar
+                               (YM.RealityAdapters.defaultParams).t0 1)
 
 /-!
 ## Wightman Axioms
@@ -220,8 +223,16 @@ structure WightmanAxioms (T : Type*) where
   w3_complete : ∃ S : YM.SpectralStability.RescaledNRC.NRCSetup,
     YM.SpectralStability.RescaledNRC.NRC_all_nonreal S
 
-/-- Analytic continuation from Euclidean to Minkowski -/
-def analyticContinuation (T : Type*) : Type* := T
+/-- Analytic continuation from Euclidean to Minkowski (spec-level surrogate). -/
+structure WickRotation where
+  ok : Prop
+
+def analyticContinuation
+  (rp : YM.OSPositivity.Euclid.RotationApproxParams)
+  (tp : YM.OSPositivity.Euclid.TranslationLimitParams) : WickRotation :=
+  { ok := YM.OSPositivity.Euclid.euclid_invariance_limit
+      { rot_ok := YM.OSPositivity.Euclid.rotation_approx_limit_spec rp
+      , trans_ok := YM.OSPositivity.Euclid.translation_limit_spec tp } }
 
 /-!
 ## Quantum Field Theory
@@ -258,7 +269,7 @@ def spectrumOf (H : Hamiltonian G) : Set ℝ := H.spectrum
 /-- Physical mass gap via the per-tick contraction `q_*`.
 References: Yang-Mills-sept21.tex lines 219–225, 249–253; and 150–154 (best-of-two route). -/
 def massGap [Group G] (T : QuantumFieldTheory) : ℝ :=
-  let P := YM.OSWilson.HeatKernelLowerBound.defaultParams
+  let P := YM.RealityAdapters.defaultParams
   let λ1 : ℝ := 1
   -Real.log (qStar P.thetaStar P.t0 λ1)
 
@@ -266,7 +277,7 @@ def massGap [Group G] (T : QuantumFieldTheory) : ℝ :=
 `(θ,t0,λ1)=(1/2,1,1)` from the definition above. -/
 theorem massGap_pos [Group G] (T : QuantumFieldTheory) : 0 < massGap T := by
   dsimp [massGap]
-  set P := YM.OSWilson.HeatKernelLowerBound.defaultParams
+  set P := YM.RealityAdapters.defaultParams
   have hq : 0 < qStar P.thetaStar P.t0 1 ∧ qStar P.thetaStar P.t0 1 < 1 :=
     qStar_in_unit_open P.theta_pos P.theta_le_one P.t0_pos (by norm_num)
   have hlog_neg : Real.log (qStar P.thetaStar P.t0 1) < 0 :=
@@ -419,5 +430,22 @@ export CompactSimpleGroup TransferOperator OSAxioms WightmanAxioms
 export QuantumFieldTheory YangMillsQFT analyticContinuation
 export Hamiltonian spectrumOf massGap isYangMillsTheory
 export Config heatKernel spectralRadius
+
+/-- Re-exported convenience theorem: continuum limit on any fixed radius region,
+bundling OS0/OS1 on the region and resolvent/semigroup convergence.
+
+This forwards to `YM.Continuum.Limit.continuum_limit_on_radius`. -/
+theorem continuum_limit_exists_on_radius (r : ℝ) (hr : 0 < r) :
+    ∃ W : YM.Continuum.Limit.ContinuumLimitWitness,
+      YM.Continuum.Limit.OS0_fixed W.R W.U ∧
+      YM.Continuum.Limit.OS1_fixed W.R W.I ∧
+      YM.Continuum.Limit.resolvent_converges_all_nonreal W.S ∧
+      YM.Continuum.Limit.semigroup_converges_on_core W.S := by
+  simpa using YM.Continuum.Limit.continuum_limit_on_radius r hr
+
+/-- Framework-level re-export: existence of a global continuum bundle. -/
+theorem global_continuum_exists :
+    ∃ G : YM.Continuum.Global.GlobalContinuum, True :=
+  YM.Continuum.Global.exists_global
 
 end YMFramework

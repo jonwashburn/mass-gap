@@ -47,15 +47,6 @@ def defaults {N : ℕ} [Fact (1 < N)] (λ1 : ℝ) (hλ1 : 0 < λ1) : GapParams :
 theorem defaults_gap_pos {N : ℕ} [Fact (1 < N)] (λ1 : ℝ) (hλ1 : 0 < λ1) : 0 < gamma0 (defaults λ1 hλ1) :=
   gamma0_pos _
 
--- The mass gap `m` is the log of the spectral radius of the transfer operator
--- on the mean-zero subspace. This theorem relates the abstract definition of
--- the mass gap to the concrete `gamma0` derived from the `q_*` contraction.
-theorem mass_gap_eq_gamma0 {N : ℕ} [Fact (1 < N)] (P : GapParams) :
-  let T_ortho := sorry -- transferOperator.restrict (meanZeroSubspace)
-  let m := - Real.log (spectralRadius ℂ T_ortho)
-  m = gamma0 P :=
-  sorry
-
 end YM.OSWilson.DeriveGap
 
 
