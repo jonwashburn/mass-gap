@@ -16,3 +16,4 @@ lake-packages/
 *.tmp
 *.bak
 *~
+ym2/
