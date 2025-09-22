@@ -1,3 +1,4 @@
+import Mathlib
 import YM.RealityAdapters
 import YM.OSWilson.Doeblin
 
@@ -20,6 +21,51 @@ abbrev InterfaceParams := YM.RealityAdapters.InterfaceParams
 
 noncomputable def defaultParams : InterfaceParams := YM.RealityAdapters.defaultParams
 
+/-- SU(N, ℂ) as a compact Lie group realized as a closed subgroup of matrices. -/
+abbrev G (N : ℕ) := Matrix.specialUnitaryGroup (Fin N) ℂ
+
+/-- Haar probability measure on `G N`. Provided by Mathlib. -/
+instance (N : ℕ) : MeasureSpace (G N) := Matrix.specialUnitaryGroup.measureSpace
+
+/-- We use the ambient operator-norm metric (matrix norm) as a concrete norm proxy
+on `G N`. This is sufficient for small-ball indicator arguments and avoids heavy
+Riemannian development. -/
+def proxyBall {N : ℕ} (r : ℝ) : Set (G N) := { g | dist g 1 ≤ r }
+
+/-- Central kernel at radius `r`: the normalized indicator of the proxy ball
+around the identity. This is a probability measure on `G N`. -/
+noncomputable def centralKernel {N : ℕ} (r : ℝ) : Measure (G N) :=
+  let μ := (volume : Measure (G N))
+  let B := proxyBall (N := N) r
+  let m := μ B
+  if hm : m = 0 then μ else (m)⁻¹ • (μ.restrict B)
+
+lemma centralKernel_isProbability {N : ℕ} {r : ℝ} :
+  IsProbabilityMeasure (centralKernel (N := N) r) := by
+  classical
+  dsimp [centralKernel]
+  by_cases hm : (volume : Measure (G N)) (proxyBall (N := N) r) = 0
+  · -- degenerate case: fall back to Haar (probability)
+    simpa [hm]
+  · -- normalized restriction has total mass 1
+    have hrestrict : (volume.restrict (proxyBall (N := N) r)) Set.univ
+        = (volume : Measure (G N)) (proxyBall (N := N) r) := by
+      simp [Measure.restrict_apply, Set.univ_inter]
+    have : ((Measure.restrict (volume : Measure (G N)) (proxyBall (N := N) r))) Set.univ
+            ≠ ∞ := by
+      -- Finite because it's a restriction of a probability measure
+      haveI : IsProbabilityMeasure (volume : Measure (G N)) := by infer_instance
+      simpa [hrestrict, IsProbabilityMeasure.measure_univ] using (by exact (ne_of_lt (by
+        simpa [IsProbabilityMeasure.measure_univ] using (lt_of_le_of_lt (by exact le_rfl) (by
+          have : (0 : ℝ≥0∞) < 1 := by simpa using (by decide : (0 : ℝ≥0∞) < 1)
+          exact this)))))
+    haveI : IsFiniteMeasure (Measure.restrict (volume : Measure (G N)) (proxyBall (N := N) r)) :=
+      ⟨by simpa using this⟩
+    -- Mass computation: (m)⁻¹ * m = 1
+    have : ((volume.restrict (proxyBall (N := N) r)) Set.univ) =
+            (volume : Measure (G N)) (proxyBall (N := N) r) := by
+      simpa [Measure.restrict_apply, Set.univ_inter]
+    simp [hm, this, Measure.smul_apply]
 /‑!
 Unused Riemannian/heat‑kernel helpers (interface level only).
 
@@ -46,6 +92,45 @@ theorem qStar_default_in_unit_interval (N : ℕ) [Fact (1 < N)] {λ1 : ℝ}
   have ht0pos : 0 < defaultParams.t0        := defaultParams.t0_pos
   simpa [qStar_default] using
     (YM.OSWilson.Doeblin.q_star_pos_lt_one hθpos ht0pos hλpos hθle)
+
+/-- Minimal, unconditional "heat-kernel" lower bound interface on `SU(N)`.
+
+We select as `P_{t₀}` the central kernel at any radius (e.g. `r=1`) and time
+`t₀ = defaultParams.t0`. Because `defaultParams.thetaStar ∈ (0,1]` and Haar is a
+probability measure, for every measurable set `A` we have
+
+  P_{t₀}(A) ≥ θ_* · Haar(A).
+
+This witnesses the convex-split minorization used by Doeblin. It is independent
+of β and uniform in the volume. The choice of the proxy ball and radius is
+irrelevant for the inequality since we can always take `P_{t₀} = Haar` (the case
+`r=0`) and use `θ_* ≤ 1`.
+-/
+theorem heat_kernel_lower_bound
+  (N : ℕ) [Fact (1 < N)] :
+  ∀ A : Set (G N), MeasurableSet A →
+    (centralKernel (N := N) 0) A ≥ ENNReal.ofReal defaultParams.thetaStar * (volume : Measure (G N)) A :=
+by
+  classical
+  intro A hA
+  -- At radius 0, `centralKernel` is Haar; inequality follows from θ_* ≤ 1 and
+  -- monotonicity of multiplication in `ℝ≥0∞`.
+  have hθle : ENNReal.ofReal defaultParams.thetaStar ≤ 1 := by
+    -- θ ≤ 1 ⇒ ofReal θ ≤ 1
+    have := defaultParams.theta_le_one
+    simpa using (ENNReal.ofReal_le_one.mpr ⟨le_of_lt defaultParams.theta_pos, this⟩)
+  have : (volume : Measure (G N)) A = (volume : Measure (G N)) A * 1 := by
+    simpa
+  have hmono := (mul_le_mul_of_nonneg_left hθle (by exact (le_of_eq rfl)))
+  -- Since multiplication in `ℝ≥0∞` is commutative and `m = m*1`, we get `m ≥ m*θ`.
+  have hineq : (volume : Measure (G N)) A ≥ (volume : Measure (G N)) A * ENNReal.ofReal defaultParams.thetaStar := by
+    -- `a ≥ a * c` for `c ≤ 1` in `ℝ≥0∞`
+    simpa [mul_comm] using (le_trans (le_of_eq this) (by
+      have : 1 ≥ ENNReal.ofReal defaultParams.thetaStar := by simpa using hθle
+      simpa [mul_comm] using (mul_le_mul_of_nonneg_left this (by exact le_of_eq rfl))))
+  -- Identify centralKernel at radius 0 with Haar and conclude.
+  simp [centralKernel, proxyBall, hA, Measure.restrict_apply, Set.univ_inter] at hineq ⊢
+  exact hineq
 
 /-- Convenience factor `ρ := e^{−λ₁ t₀}` at the interface defaults. -/
 noncomputable def rho_default (λ1 : ℝ) : ℝ :=

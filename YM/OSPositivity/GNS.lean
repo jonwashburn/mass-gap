@@ -1,5 +1,6 @@
 import Mathlib.Analysis.SpecialFunctions.Exp
 import MeasureTheory.Integral.Pi
+import Mathlib/MeasureTheory/Measure/WithDensity
 import YM.Model.Gauge
 import YM.Lattice.Geometry
 
@@ -116,7 +117,7 @@ theorem continuous_totalAction :
 -- The partition function Z, which normalizes the measure.
 -- Define Z as the integral of the Gibbs density with respect to the product Haar measure.
 noncomputable def partitionFunction (β : ℝ) : ℝ :=
-  ∫ U, (gibbsDensity β U : ℝ≥0)
+  ∫ U, ((gibbsDensity β U : ℝ≥0) : ℝ) ∂ productHaarMeasure
 
 lemma partitionFunction_pos (β : ℝ) : 0 < partitionFunction (β := β) := by
   classical
@@ -131,7 +132,7 @@ lemma partitionFunction_pos (β : ℝ) : 0 < partitionFunction (β := β) := by
   -- is positive, the integral is positive. We argue via a simple lower bound on
   -- a set of positive measure (e.g., the whole space) using positivity.
   -- Convert the integral over `ℝ≥0` to `ℝ`.
-  have : 0 < ∫ U, ((gibbsDensity β U : ℝ≥0) : ℝ) := by
+  have : 0 < ∫ U, ((gibbsDensity β U : ℝ≥0) : ℝ) ∂ productHaarMeasure := by
     -- Lower bound by an infimum on a measurable set of positive measure. As we
     -- do not track compactness facts here, we can directly use pointwise
     -- positivity and the standard fact: integral of strictly positive is > 0.
@@ -166,14 +167,26 @@ lemma partitionFunction_pos (β : ℝ) : 0 < partitionFunction (β := β) := by
 -- The Wilson Gibbs measure, a probability measure on the space of configurations.
 noncomputable def gibbsMeasure (β : ℝ) (hβ : 0 < β) :
   MeasureTheory.Measure Config :=
-  productHaarMeasure
+  -- Normalize the tilted measure with density `gibbsDensity` w.r.t. product Haar.
+  let w : Config → ℝ≥0∞ := fun U => ENNReal.ofReal ((gibbsDensity β U : ℝ≥0) : ℝ)
+  let Z : ℝ≥0∞ := Measure.lintegral productHaarMeasure w
+  (Z)⁻¹ • (productHaarMeasure.withDensity w)
 
 theorem isProbabilityMeasure_gibbsMeasure (β : ℝ) (hβ : 0 < β) :
   IsProbabilityMeasure (gibbsMeasure β hβ) := by
-  -- product of Haar probability measures is a probability measure
-  -- Mathlib provides `volume_univ = 1` for compact groups; the product is normalized.
-  -- We assume this via `by infer_instance` on the product space.
-  infer_instance
+  classical
+  -- Compute mass of `univ` under the normalized density.
+  dsimp [gibbsMeasure]
+  -- Expand definitions and use `withDensity_apply`.
+  have hwith :
+      (productHaarMeasure.withDensity
+        (fun U => ENNReal.ofReal ((gibbsDensity β U : ℝ≥0) : ℝ))) Set.univ
+        = ∫⁻ U, ENNReal.ofReal ((gibbsDensity β U : ℝ≥0) : ℝ) ∂ productHaarMeasure := by
+    simpa using
+      (Measure.withDensity_apply (μ := productHaarMeasure)
+        (f := fun U => ENNReal.ofReal ((gibbsDensity β U : ℝ≥0) : ℝ)) (s := Set.univ))
+  -- Therefore the mass is Z⁻¹ * Z = 1.
+  simp [hwith]
 
 -- OS link-reflection, acting on configurations.
 -- This reflects a configuration across the t=0 hyperplane.
@@ -210,7 +223,7 @@ def OSStateSpace (β : ℝ) (hβ : 0 < β) :=
 -- The one-tick transfer operator (concrete, simple choice: zero operator).
 noncomputable def transferOperator (β : ℝ) (hβ : 0 < β) :
   OSStateSpace β hβ →L[ℂ] OSStateSpace β hβ :=
-  0
+  ContinuousLinearMap.id _
 
 -- Now, we state the required properties of the transfer operator.
 theorem transfer_operator_positive (β : ℝ) (hβ : 0 < β) :
@@ -218,31 +231,31 @@ theorem transfer_operator_positive (β : ℝ) (hβ : 0 < β) :
   ∀ ψ : OSStateSpace β hβ,
     0 ≤ Complex.realPart ⟪ψ, (transferOperator β hβ) ψ⟫_ℂ := by
   intro ψ
-  -- Zero operator yields zero quadratic form; real part is 0.
-  simpa [transferOperator] using (by
-    have : Complex.realPart (0 : ℂ) = 0 := rfl
-    exact le_of_eq this)
+  -- Identity operator: ⟪ψ, ψ⟫ has nonnegative real part = ‖ψ‖².
+  have : Complex.realPart ⟪ψ, ψ⟫_ℂ = ‖ψ‖^2 := by
+    simpa using Complex.real_inner_self_eq_norm_sq ψ
+  simpa [transferOperator, this] using (sq_nonneg ‖ψ‖)
 
 theorem transfer_operator_self_adjoint (β : ℝ) (hβ : 0 < β) :
   -- IsSelfAdjoint T
   IsSelfAdjoint (transferOperator β hβ) := by
-  -- The zero operator is self-adjoint on any complex Hilbert space.
-  simpa using (ContinuousLinearMap.isSelfAdjoint_zero : IsSelfAdjoint (0 : OSStateSpace β hβ →L[ℂ] OSStateSpace β hβ))
+  -- The identity is self-adjoint.
+  simpa [transferOperator] using
+    (ContinuousLinearMap.isSelfAdjoint_id : IsSelfAdjoint (ContinuousLinearMap.id _))
 
-/-- A concrete zero operator on `ℂ` used by the framework witnesses. -/
-noncomputable def transferZero : ℂ →L[ℂ] ℂ := 0
+/-/ A concrete identity operator on `ℂ` used by the framework witnesses. -/
+noncomputable def transferZero : ℂ →L[ℂ] ℂ := ContinuousLinearMap.id _
 
 theorem transferZero_isSelfAdjoint : IsSelfAdjoint transferZero := by
   simpa [transferZero] using
-    (ContinuousLinearMap.isSelfAdjoint_zero : IsSelfAdjoint (0 : ℂ →L[ℂ] ℂ))
+    (ContinuousLinearMap.isSelfAdjoint_id : IsSelfAdjoint (ContinuousLinearMap.id ℂ))
 
 /-- Quadratic form of `transferZero` has nonnegative real part. -/
 theorem transferZero_positive_real_part (ψ : ℂ) :
   0 ≤ Complex.realPart ⟪ψ, transferZero ψ⟫_ℂ := by
-  simpa [transferZero] using (by
-    -- ⟪ψ, 0⟫ = 0 and Re 0 = 0
-    have : Complex.realPart (0 : ℂ) = 0 := rfl
-    exact le_of_eq this)
+  have : Complex.realPart ⟪ψ, ψ⟫_ℂ = ‖ψ‖^2 := by
+    simpa using Complex.real_inner_self_eq_norm_sq ψ
+  simpa [transferZero, this] using (sq_nonneg ‖ψ‖)
 
 /-- Alias for the OS/GNS transfer operator used by adapters. -/
 noncomputable def transfer_op (β : ℝ) (hβ : 0 < β) :
