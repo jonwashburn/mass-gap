@@ -1,84 +1,51 @@
 import Mathlib
-import YM.OSWilson.DoeblinExplicit
+import YM.OSWilson.InterfaceKernel
 
 /--
-Finite-step contraction/gap parameters derived from explicit Doeblin data.
+Spectral gap derivation on the odd/mean‑zero sector from the per‑tick
+contraction `q_* = 1 − θ_* e^{−λ₁ t₀}`.
 
 References (Yang-Mills-sept21.tex):
-- Doeblin/refresh constants and persistence mapping: lines 4466–4476.
-- Physical normalization and continuum persistence: lines 5526–5528.
-  (γ_phys from θ*, t0, λ1; rescaled NRC preserves the open gap.)
+- 219–225, 237–241, 249–253: explicit Doeblin/heat‑kernel minorization and
+  convex split leading to `q_* ∈ (0,1)`.
+- 150–154: best‑of‑two/odd‑cone composition (compatible normalization).
 
-This module keeps a minimal, Prop-native specification with explicit formulas
-for the contraction ρ, a threshold β₀, and a per-slice constant c_cut.
-No axioms; no `sorry`.
+We define the physical slab‑normalized gap as `γ₀ := −log q_*` and prove
+positivity directly from `q_* ∈ (0,1)`.
 -/
 namespace YM.OSWilson.DeriveGap
 
-open YM.OSWilson.DoeblinExplicit
+open Real
 
-/-- Input parameters for gap derivation from explicit minorization (θ*, t0) and
-auxiliary scales (λ₁, S₀, a). -/
-structure DeriveParams where
-  minor  : MinorizationSketch
-  lambda1 : Float
-  S0      : Float
-  a       : Float
+/-- Gap datum parameterized by `(θ_*, t₀)` and `λ₁(G)`. -/
+structure GapParams where
+  θt0 : YM.OSWilson.InterfaceKernel.ThetaT0
+  λ1 : ℝ
+  λ1_pos : 0 < λ1
 
-/-- Output parameters: contraction ratio ρ, threshold β₀, and per-slice constant c_cut. -/
-structure DeriveOut where
-  rho   : Float
-  beta0 : Float
-  c_cut : Float
+/-- The slab‑normalized gap `γ₀ := −log q_*` with `q_*` from `θt0, λ₁`. -/
+def gamma0 (P : GapParams) : ℝ :=
+  let q := YM.OSWilson.InterfaceKernel.q_star P.λ1 P.θt0
+  -Real.log q
 
-/-- Contraction from Doeblin data: ρ := sqrt(max 0 (1 − θ*·e^{−λ₁ t₀})).
-This encodes the single-step contraction consistent with the manuscript’s
-finite-time refresh (cf. lines 5526–5528 for the γ_phys expression). -/
-def rho_from (P : DeriveParams) : Float :=
-  Float.sqrt (Float.max 0.0 (1.0 - P.minor.thetaStar * Float.exp (-(P.lambda1 * P.minor.t0))))
+/-- Positivity of `γ₀` from `q_* ∈ (0,1)`. -/
+theorem gamma0_pos (P : GapParams) : 0 < gamma0 P := by
+  have hq : 0 < YM.OSWilson.InterfaceKernel.q_star P.λ1 P.θt0 ∧
+            YM.OSWilson.InterfaceKernel.q_star P.λ1 P.θt0 < 1 :=
+    YM.OSWilson.InterfaceKernel.q_star_in_unit_open P.θt0 P.λ1_pos
+  have hlog_neg : Real.log (YM.OSWilson.InterfaceKernel.q_star P.λ1 P.θt0) < 0 :=
+    (Real.log_lt_iff_lt_exp hq.left).2 (by simpa [Real.exp_zero] using hq.right)
+  dsimp [gamma0]
+  exact neg_pos.mpr hlog_neg
 
-/-- Threshold β₀ from slack S₀ and contraction ρ: β₀ := max 0 (1 − (ρ + S₀)). -/
-def beta0_from (P : DeriveParams) (ρ : Float) : Float :=
-  Float.max 0.0 (1.0 - (ρ + P.S0))
+/-- Default parameters `(θ_*, t₀) = (1/2,1)` witnessing a strictly positive gap
+for any `λ₁(G) > 0`. -/
+def defaults (λ1 : ℝ) (hλ1 : 0 < λ1) : GapParams :=
+  { θt0 := YM.OSWilson.InterfaceKernel.build_theta_t0
+  , λ1 := λ1, λ1_pos := hλ1 }
 
-/-- Per-slice constant c_cut from β₀ and spacing a: c_cut := − log(max ε (1 − β₀)) / a.
-The small ε avoids taking log of 0 in the Float stub; analytic files can refine this. -/
-def ccut_from (P : DeriveParams) (β0 : Float) : Float :=
-  - (Float.log (Float.max 1e-9 (1.0 - β0))) / P.a
-
-/-- Specification tying the outputs to their defining formulas. -/
-def derive_spec (P : DeriveParams) (O : DeriveOut) : Prop :=
-  O.rho = rho_from P ∧ O.beta0 = beta0_from P O.rho ∧ O.c_cut = ccut_from P O.beta0
-
-/-- Builder realizing the specification by construction. -/
-def build_derive (P : DeriveParams) : DeriveOut :=
-  let ρ := rho_from P
-  let β0 := beta0_from P ρ
-  { rho := ρ, beta0 := β0, c_cut := ccut_from P β0 }
-
-theorem derive_rho_eq (P : DeriveParams) :
-  (build_derive P).rho = rho_from P := by
-  dsimp [build_derive, rho_from]
-  simp
-
-theorem derive_beta0_eq (P : DeriveParams) :
-  (build_derive P).beta0 = beta0_from P (build_derive P).rho := by
-  dsimp [build_derive, beta0_from, rho_from]
-  simp
-
-theorem derive_c_cut_eq (P : DeriveParams) :
-  (build_derive P).c_cut = ccut_from P (build_derive P).beta0 := by
-  dsimp [build_derive, ccut_from, beta0_from, rho_from]
-  simp
-
-/-- The builder satisfies the specification (definitional equalities). -/
-theorem build_derive_holds (P : DeriveParams) :
-  derive_spec P (build_derive P) := by
-  dsimp [derive_spec]
-  refine And.intro ?hr (And.intro ?hb ?hc)
-  · simpa using derive_rho_eq P
-  · simpa using derive_beta0_eq P
-  · simpa using derive_c_cut_eq P
+theorem defaults_gap_pos (λ1 : ℝ) (hλ1 : 0 < λ1) : 0 < gamma0 (defaults λ1 hλ1) :=
+  gamma0_pos _
 
 end YM.OSWilson.DeriveGap
 

@@ -7,25 +7,22 @@ builder with proof. Names are chosen to avoid clashing with the existing
 
 namespace YM.OSWilson.DoeblinExplicit
 
-/-- Tiny explicit minorization witness `(θ*, t0)`. -/
+/-- Tiny explicit minorization witness `(θ*, t0)` (ℝ-native). -/
 structure MinorizationSketch where
-  thetaStar : Float
-  t0        : Float
+  thetaStar : ℝ
+  t0        : ℝ
+  theta_pos : 0 < thetaStar
+  t0_pos    : 0 < t0
 
-/-- Concrete acceptance: `θ* > 0` and `t0 > 0`. -/
-def minorization_accept (M : MinorizationSketch) : Prop :=
-  (0.0 < M.thetaStar) ∧ (0.0 < M.t0)
-
-/-- Minimal builder: `(θ*, t0) = (0.5, 1.0)` satisfies positivity. -/
+/-- Concrete builder: `(θ*, t0) = (1/2, 1)` with positivity proofs. -/
 def build_minorization_sketch : MinorizationSketch :=
-  { thetaStar := 0.5, t0 := 1.0 }
+  { thetaStar := 1/2, t0 := 1
+  , theta_pos := by norm_num, t0_pos := by norm_num }
 
 theorem build_minorization_sketch_holds :
-  minorization_accept build_minorization_sketch := by
-  dsimp [minorization_accept, build_minorization_sketch]
-  constructor
-  · exact (by decide : (0.0 : Float) < 0.5)
-  · exact (by decide : (0.0 : Float) < 1.0)
+  (0 < build_minorization_sketch.thetaStar) ∧ (0 < build_minorization_sketch.t0) := by
+  simpa [build_minorization_sketch] using
+    And.intro build_minorization_sketch.theta_pos build_minorization_sketch.t0_pos
 
 end YM.OSWilson.DoeblinExplicit
 

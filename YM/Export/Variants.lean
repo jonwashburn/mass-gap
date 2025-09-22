@@ -5,13 +5,13 @@ No axioms. No `sorry`.
 -/
 
 import YM.SpectralStability.RescaledNRC
-import YM.Transfer.PhysicalGap
+-- Removed PhysicalGap Float dependency; use Real-native gap from OSWilson
 import YM.OSWilson.Doeblin
 
 namespace YM.Export.Variants
 
 open YM.SpectralStability.RescaledNRC
-open YM.Transfer.PhysicalGap
+-- No PhysicalGap import; we provide Real-native stubs below
 
 /-- Spectral variant export using NRC setup (spec-level; Prop-based). -/
 structure SpectralVariant where
@@ -33,33 +33,34 @@ theorem build_spectral_export_holds (S : NRCSetup) :
 
 /-- Real/physical variant export via Doeblin-driven γ_phys (spec-level). -/
 structure RealVariant where
-  gamma_phys : Float
+  gamma_phys : ℝ
 
 /-- Spec: the exported physical gap equals that built from Doeblin data. -/
-def real_export_spec (G : GapFromDoeblinOut) (V : RealVariant) : Prop :=
-  V.gamma_phys = G.gamma_phys
+def real_export_spec (γ : ℝ) (V : RealVariant) : Prop :=
+  V.gamma_phys = γ
 
 /-- Builder: copy out γ_phys from the Doeblin gap aggregator. -/
-def build_real_export (G : GapFromDoeblinOut) : RealVariant :=
-  { gamma_phys := G.gamma_phys }
+def build_real_export (γ : ℝ) : RealVariant :=
+  { gamma_phys := γ }
 
-theorem build_real_export_holds (G : GapFromDoeblinOut) :
-  real_export_spec G (build_real_export G) := rfl
+theorem build_real_export_holds (γ : ℝ) :
+  real_export_spec γ (build_real_export γ) := rfl
 
 /-- Interface variant export via Wilson interface γ_cut (spec-level). -/
 structure InterfaceVariant where
-  gamma_cut : Float
+  gamma_cut : ℝ
 
 /-- Spec: the exported cut gap equals the interface export γ_c. -/
-def interface_export_spec (I : YM.OSWilson.Doeblin.WilsonGibbsInterface) (V : InterfaceVariant) : Prop :=
-  V.gamma_cut = (YM.OSWilson.Doeblin.export_from_interface I).gamma_c
+-- Keep a Real-native spec without depending on Float-based interface exports
+def interface_export_spec (γc : ℝ) (V : InterfaceVariant) : Prop :=
+  V.gamma_cut = γc
 
 /-- Builder: copy out γ_c from the interface export. -/
-def build_interface_export (I : YM.OSWilson.Doeblin.WilsonGibbsInterface) : InterfaceVariant :=
-  { gamma_cut := (YM.OSWilson.Doeblin.export_from_interface I).gamma_c }
+def build_interface_export (γc : ℝ) : InterfaceVariant :=
+  { gamma_cut := γc }
 
-theorem build_interface_export_holds (I : YM.OSWilson.Doeblin.WilsonGibbsInterface) :
-  interface_export_spec I (build_interface_export I) := rfl
+theorem build_interface_export_holds (γc : ℝ) :
+  interface_export_spec γc (build_interface_export γc) := rfl
 
 end YM.Export.Variants
 

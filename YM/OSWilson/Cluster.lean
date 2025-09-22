@@ -8,13 +8,13 @@ namespace YM.OSWilson.Cluster
 
 /-- Small-β parameter pack. -/
 structure SmallBeta where
-  β : Float
-  β_small : Bool
+  β : ℝ
+  β_small : Prop
 
 /-- Influence bound container: α(β) with transverse coupling `J⊥`. -/
 structure InfluenceBound where
-  Jperp : Float
-  alpha : Float
+  Jperp : ℝ
+  alpha : ℝ
 
 /--
 Spec-level identification of the Dobrushin/character influence coefficient.
@@ -24,11 +24,11 @@ Spec-level identification of the Dobrushin/character influence coefficient.
 [Yang-Mills-sept21.tex, lines 2686–2715]
 -/
 def influence_bound_spec (P : SmallBeta) (B : InfluenceBound) : Prop :=
-  (B.alpha = 2.0 * P.β * B.Jperp) ∧ (0.0 ≤ B.Jperp)
+  (B.alpha = 2 * P.β * B.Jperp) ∧ (0 ≤ B.Jperp)
 
 /-- Builder for influence bound parameters (spec-level). -/
 def build_influence_bound (P : SmallBeta) : InfluenceBound :=
-  { Jperp := 12.0, alpha := 2.0 * P.β * 12.0 }
+  { Jperp := 12, alpha := 2 * P.β * 12 }
 
 /-- The built influence bound satisfies the spec. -/
 theorem build_influence_bound_holds (P : SmallBeta) :
@@ -36,7 +36,8 @@ theorem build_influence_bound_holds (P : SmallBeta) :
   dsimp [influence_bound_spec, build_influence_bound]
   constructor
   · rfl
-  · exact (by decide : (0.0 : Float) ≤ 12.0)
+  · -- 0 ≤ 12 over ℝ
+    simpa using (le_of_eq (rfl : (0 : ℝ) = 0))
 
 /-- CERT_FN-style alias: α(β) ≤ 2β J⊥ (spec-level acceptance). -/
 def influence_bound_alpha_le_2beta_Jperp (P : SmallBeta) (B : InfluenceBound) : Prop :=
@@ -62,11 +63,11 @@ Formally, acceptance holds provided there exists an influence bound with α(β) 
 [Yang-Mills-sept21.tex, line 4856]
 -/
 def cluster_expansion_spec (P : SmallBeta) (C : ClusterAcceptance) : Prop :=
-  (∃ B : InfluenceBound, influence_bound_spec P B ∧ B.alpha < 1.0) → C.ok
+  (∃ B : InfluenceBound, influence_bound_spec P B ∧ B.alpha < 1) → C.ok
 
 /-- Minimal builder for the cluster expansion acceptance. -/
 def build_cluster_expansion (P : SmallBeta) : ClusterAcceptance :=
-  { ok := ∃ B : InfluenceBound, influence_bound_spec P B ∧ B.alpha < 1.0 }
+  { ok := ∃ B : InfluenceBound, influence_bound_spec P B ∧ B.alpha < 1 }
 
 /--
 The built cluster acceptance satisfies the spec (the acceptance predicate is exactly the
@@ -86,7 +87,7 @@ This realizes the existence premise in `cluster_expansion_spec` using `build_inf
 [Yang-Mills-sept21.tex, lines 2686–2715]
 -/
 private theorem exists_influence_bound_alpha_lt_one_of_small_beta
-  (P : SmallBeta) (hsmall : 2.0 * P.β * (build_influence_bound P).Jperp < 1.0) :
+  (P : SmallBeta) (hsmall : 2 * P.β * (build_influence_bound P).Jperp < 1) :
   ∃ B : InfluenceBound, influence_bound_spec P B ∧ B.alpha < 1.0 := by
   refine ⟨build_influence_bound P, build_influence_bound_holds P, ?_⟩
   -- Unfold α = 2 β J⊥ and apply the small-β hypothesis
@@ -98,13 +99,13 @@ private theorem exists_influence_bound_alpha_lt_one_of_small_beta
 
 /-- PF gap from Dobrushin coefficient: γ(β) ≥ 1 − α(β) (spec-level). -/
 structure PFGapOut where
-  gamma_lb : Float
+  gamma_lb : ℝ
 
 def pf_gap_from_dobrushin_spec (B : InfluenceBound) (G : PFGapOut) : Prop :=
-  G.gamma_lb = Float.max 0.0 (1.0 - B.alpha)
+  G.gamma_lb = max 0 (1 - B.alpha)
 
 def build_pf_gap_from_dobrushin (B : InfluenceBound) : PFGapOut :=
-  { gamma_lb := Float.max 0.0 (1.0 - B.alpha) }
+  { gamma_lb := max 0 (1 - B.alpha) }
 
 theorem build_pf_gap_from_dobrushin_holds (B : InfluenceBound) :
   pf_gap_from_dobrushin_spec B (build_pf_gap_from_dobrushin B) := by

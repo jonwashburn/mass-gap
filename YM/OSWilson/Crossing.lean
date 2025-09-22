@@ -10,11 +10,11 @@ namespace YM.OSWilson.Crossing
 
 /-- Crossing kernel on a generic cut state space `α` (spec-level). -/
 structure CrossingKernel (α : Type u) where
-  K : α → α → Float
+  K : α → α → ℝ
 
 /-- Builder: symmetric kernel with simple class-function structure `K(u,v)=K(v,u)`. -/
 def build_crossing_kernel_wilson (α : Type u) [DecidableEq α] : CrossingKernel α :=
-  { K := fun u v => if u = v then 1.0 else 0.5 }
+  { K := fun u v => if u = v then (1 : ℝ) else (1/2 : ℝ) }
 
 /-- Hermitian (symmetric) property of a crossing kernel. -/
 def hermitian_spec {α : Type u} (C : CrossingKernel α) : Prop :=
@@ -28,16 +28,17 @@ theorem hermitian_holds (α : Type u) [DecidableEq α] :
 This is a concrete, checkable relaxation compatible with OS positivity heuristics
 for crossing weights (cf. YM-sept21.tex 2649–2715). -/
 def reflected_entrywise_nonneg_spec {α : Type u} (C : CrossingKernel α) : Prop :=
-  ∀ u v, 0.0 ≤ C.K u v
+  ∀ u v, 0 ≤ C.K u v
 
 theorem reflected_entrywise_nonneg_holds (α : Type u) [DecidableEq α] :
   let C := build_crossing_kernel_wilson α
   reflected_entrywise_nonneg_spec C := by
   intro C u v; by_cases h : u = v
-  · -- 0 ≤ 1.0
-    simpa [build_crossing_kernel_wilson, h] using (by decide : (0.0 : Float) ≤ 1.0)
-  · -- 0 ≤ 0.5
-    simpa [build_crossing_kernel_wilson, h] using (by decide : (0.0 : Float) ≤ 0.5)
+  · -- 0 ≤ 1
+    simpa [build_crossing_kernel_wilson, h] using (le_of_eq (rfl : (0 : ℝ) = 0))
+  · -- 0 ≤ 1/2
+    have : 0 ≤ (1/2 : ℝ) := by norm_num
+    simpa [build_crossing_kernel_wilson, h] using this
 
 end YM.OSWilson.Crossing
 

@@ -15,12 +15,12 @@ open YM.OSPositivity
 
 /-- Minimal inputs for the final acceptance: a strictly positive gap `γ₀`. -/
 structure FinalParams where
-  gamma0 : Float
-  hpos   : gamma0 > 0.0
+  gamma0 : ℝ
+  hpos   : 0 < gamma0
 
 /-- Final acceptance payload: records `γ₀` together with OS2 and Wightman witnesses. -/
 structure FinalAcceptance where
-  gamma0 : Float
+  gamma0 : ℝ
   os2    : OS2.TwoPoint
   wight  : Wightman.WightmanField
 

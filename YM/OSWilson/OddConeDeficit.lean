@@ -1,46 +1,51 @@
-/-!
-Odd-cone deficit: eight-tick contraction pack (spec-level, local).
-No axioms. No `sorry`.
+import Mathlib
+import YM.OSWilson.InterfaceKernel
 
-References: Yang-Mills-sept21.tex — odd-cone contraction and eight-tick
-upgrade on slabs; used to define a physical cut scale c_cut.
+/-!
+Odd-cone/mean-zero sector contraction (ℝ-native).
+
+References (Yang-Mills-sept21.tex):
+- 150–154: best‑of‑two/odd‑cone composition and deficit on the mean-zero sector.
+- 219–225, 237–241, 249–253: interface Doeblin constants and `q_* ∈ (0,1)`.
+
+We package the per‑tick contraction on the relevant sector purely as a
+Real-valued contraction factor `q ∈ (0,1)` and define the slab-normalized gap
+`γ₀ = −log q`. No floats, no booleans, and no tautologies.
 -/
 
 namespace YM.OSWilson.OddConeDeficit
 
-/-- Input parameters for the eight-tick/odd-cone pack. -/
-structure TickPackParams where
-  /-- β₀, the one-step deficit (nonnegative in applications). -/
-  beta0 : Float
-  /-- a > 0 is the geometric/refresh parameter determining the scale. -/
-  a : Float
+open Real
 
-/-- Output of the pack: the physical cut scale c_cut. -/
-structure TickPackOut where
-  c_cut : Float
+/-- Per‑tick contraction datum on the odd/mean‑zero sector. -/
+structure PerTick where
+  q : ℝ
+  q_pos : 0 < q
+  q_lt_one : q < 1
 
-/-- Closed form for c_cut as a function of `a` and `β₀`.
-This mirrors the pipeline used in the Transfer module, specialized here. -/
-def c_cut_of (a beta0 : Float) : Float :=
-  - (Float.log (Float.max 1e-9 (1.0 - beta0))) / a
+/-- Slab‑normalized gap from a per‑tick contraction: `γ₀ := −log q`. -/
+def gamma0 (c : PerTick) : ℝ := -Real.log c.q
 
-@[simp] theorem c_cut_of_def (a beta0 : Float) :
-  c_cut_of a beta0 = - (Float.log (Float.max 1e-9 (1.0 - beta0))) / a := rfl
+/-- Positivity of `γ₀` follows from `q ∈ (0,1)`. -/
+theorem gamma0_pos (c : PerTick) : 0 < gamma0 c := by
+  have hlog_neg : Real.log c.q < 0 :=
+    (Real.log_lt_iff_lt_exp c.q_pos).2 (by simpa [Real.exp_zero] using c.q_lt_one)
+  exact neg_pos.mpr hlog_neg
 
-/-- Spec for the tick pack: it returns the closed-form c_cut. -/
-def tick_pack_spec (P : TickPackParams) (O : TickPackOut) : Prop :=
-  O.c_cut = c_cut_of P.a P.beta0
+/-- Build a per‑tick contraction from the explicit Doeblin/heat‑kernel
+parameters `(θ_*, t₀) = (1/2,1)` and any `λ₁(G) > 0` via
+`q_* = 1 − θ_* e^{−λ₁ t₀}`. -/
+def build_perTick (λ1 : ℝ) (hλ1_pos : 0 < λ1) : PerTick :=
+  let P := YM.OSWilson.InterfaceKernel.build_theta_t0
+  let q := YM.OSWilson.InterfaceKernel.q_star λ1 P
+  have h : 0 < q ∧ q < 1 :=
+    YM.OSWilson.InterfaceKernel.q_star_in_unit_open P hλ1_pos
+  { q := q, q_pos := h.left, q_lt_one := h.right }
 
-/-- Build the tick pack from `(β₀,a)`, producing `c_cut`. -/
-def build_tick_pack (P : TickPackParams) : TickPackOut :=
-  { c_cut := c_cut_of P.a P.beta0 }
-
-@[simp] theorem build_tick_pack_c_cut (P : TickPackParams) :
-  (build_tick_pack P).c_cut = c_cut_of P.a P.beta0 := rfl
-
-theorem build_tick_pack_satisfies (P : TickPackParams) :
-  tick_pack_spec P (build_tick_pack P) := by rfl
+/-- The associated `γ₀` is positive for any `λ₁(G) > 0`. -/
+theorem gamma0_defaults_pos (λ1 : ℝ) (hλ1_pos : 0 < λ1) :
+    0 < gamma0 (build_perTick λ1 hλ1_pos) :=
+  gamma0_pos _
 
 end YM.OSWilson.OddConeDeficit
-
 
