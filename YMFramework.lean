@@ -90,19 +90,24 @@ We tie to a concrete OS/GNS transfer (on `ℂ`) exported upstream, without
 changing the public `TransferOperator` API here.
 /-
 private structure OSTransferWitness where
-  T : ℂ →L[ℂ] ℂ
+  /-- Concrete OS/GNS one-tick transfer on the OS Hilbert space. -/
+  T :
+    YM.OSPositivity.GNS.OSHilbert (N := 3) (β := 1) (hβ := by decide)
+      →L[ℂ]
+    YM.OSPositivity.GNS.OSHilbert (N := 3) (β := 1) (hβ := by decide)
   selfAdj : IsSelfAdjoint T
-  posRealPart : ∀ ψ, 0 ≤ Complex.realPart ⟪ψ, T ψ⟫_ℂ
+  posRealPart : ∀ ψ,
+    0 ≤ Complex.realPart ⟪ψ, T ψ⟫_ℂ
 
 /-- Build the private OS/GNS transfer witness by using the concrete
 `transferZero` export: it is self-adjoint and has nonnegative quadratic
 real part. -/
 private def buildOSTransferWitness : OSTransferWitness :=
-  { T := YM.OSPositivity.GNS.transferZero
-  , selfAdj := YM.OSPositivity.GNS.transferZero_isSelfAdjoint
+  { T := YM.OSPositivity.GNS.transferOneTick (N := 3) (β := 1) (hβ := by decide)
+  , selfAdj := YM.OSPositivity.GNS.transferOneTick_isSelfAdjoint (N := 3) (β := 1) (hβ := by decide)
   , posRealPart := by
       intro ψ
-      simpa using YM.OSPositivity.GNS.transferZero_positive_real_part ψ }
+      simpa using YM.OSPositivity.GNS.transferOneTick_positive (N := 3) (β := 1) (hβ := by decide) ψ }
 
   /-- Local refined positivity proposition (existential OS/GNS witness with
   actual quadratic-form nonnegativity, no tautology). -/
@@ -119,6 +124,25 @@ private def transfer_selfAdjoint : Prop := ∃ W : OSTransferWitness, W.selfAdj
 /-- The refined self-adjointness proposition holds (same witness). -/
 theorem transfer_is_selfAdjoint : ∃ W : OSTransferWitness, W.selfAdj :=
   ⟨buildOSTransferWitness, by exact buildOSTransferWitness.selfAdj⟩
+
+/-- OS/GNS transfer on the OS Hilbert space is self-adjoint (wired to GNS). -/
+theorem os_transfer_isSelfAdjoint
+  {N : ℕ} [Fact (1 < N)] (β : ℝ) (hβ : 0 < β) :
+  IsSelfAdjoint (YM.OSPositivity.GNS.T_hat (N := N) β hβ) := by
+  simpa using (YM.OSPositivity.GNS.T_hat_isSelfAdjoint (N := N) β hβ)
+
+/-- Quadratic-form positivity for the OS/GNS transfer (wired to GNS). -/
+theorem os_transfer_positive_real_part
+  {N : ℕ} [Fact (1 < N)] (β : ℝ) (hβ : 0 < β)
+  (ψ : YM.OSPositivity.GNS.OSHilbert (N := N) β hβ) :
+  0 ≤ Complex.realPart ⟪ψ, (YM.OSPositivity.GNS.T_hat (N := N) β hβ) ψ⟫_ℂ := by
+  simpa using (YM.OSPositivity.GNS.T_hat_positive (N := N) β hβ ψ)
+
+/-- Operator-norm bound: the OS/GNS transfer is a contraction. -/
+theorem os_transfer_is_contraction
+  {N : ℕ} [Fact (1 < N)] (β : ℝ) (hβ : 0 < β) :
+  ‖YM.OSPositivity.GNS.T_hat (N := N) β hβ‖ ≤ 1 := by
+  simpa using (YM.OSPositivity.GNS.T_hat_is_contraction (N := N) β hβ)
 
 /-!
 ## Osterwalder-Schrader Axioms
