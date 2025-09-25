@@ -4,7 +4,6 @@ import YM.OSPositivity.Euclid
 import YM.OSWilson.Cluster
 import YM.OSPositivity.Wightman
 import YM.OSPositivity.LocalFields
-import YM.OSPositivity.LocalFields
 import YM.SpectralStability.RescaledNRC
 import YM.OSPositivity.GNS
 import YM.RealityAdapters
@@ -50,11 +49,11 @@ structure LatticeConfig (G : Type*) [Group G] where
   β : ℝ
   /-- Volume -/
   L : ℕ
-  
+
 structure Link where
   start : Fin 4 × Fin 4 × Fin 4 × Fin 4
   direction : Fin 4
-  
+
 structure Plaquette where
   corner : Fin 4 × Fin 4 × Fin 4 × Fin 4
   plane : Fin 4 × Fin 4
@@ -123,7 +122,7 @@ theorem transfer_is_selfAdjoint : ∃ W : OSTransferWitness, W.selfAdj :=
 
 /-!
 ## Osterwalder-Schrader Axioms
--/ 
+-/
 
 /-!
 Pre-OS5: Real-native contraction constant and basic facts.
@@ -186,7 +185,8 @@ structure OSAxioms (T : Type*) where
         , trans_ok := YM.OSPositivity.Euclid.translation_limit_spec tp }
   /-- OS2: Reflection positivity witnessed by a concrete two-point;
   cf. Yang-Mills-sept21.tex roadmap lines 305–309. -/
-  os2_reflection : YM.OSPositivity.OS2.os2_positive YM.OSPositivity.OS2.build_two_point
+  os2_reflection : YM.OSPositivity.OS2.os2_positive
+    (YM.OSPositivity.OS2.build_two_point YM.OSPositivity.OS2.canonicalReflectionInput)
   /-- OS3: Symmetry (hypercubic invariance on some dimension). -/
   os3_symmetry : ∃ P : YM.OSPositivity.Euclid.HypercubicParams,
     YM.OSPositivity.Euclid.hypercubic_invariance_spec P
@@ -242,7 +242,7 @@ structure QuantumFieldTheory where
   spacetime : Type*
   fields : Type*
   action : ℝ
-  
+
 def Euclidean (d : ℕ) : Type* := Fin d → ℝ
 
 def YangMillsQFT : QuantumFieldTheory where
@@ -402,7 +402,7 @@ structure DobrushinCoefficient where
   normalization factor). -/
   pos : 0 < α
   bound : α < 1
-  
+
 /-- From a Dobrushin contraction `α ∈ (0,1)`, obtain a positive spectral gap
 `gap = -log α`.
 

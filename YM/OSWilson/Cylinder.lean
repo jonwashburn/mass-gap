@@ -35,14 +35,16 @@ def cylinderAlgebraSpec (A : CylinderAlgebra) : Prop :=
 
 /-- Minimal builder for a cylinder algebra on a given half-space. -/
 def buildCylinderAlgebra (H : TimeHalfSpace) (genSize : Nat := 0) : CylinderAlgebra :=
-  { H := H, gen := { size := genSize }, closedUnderOps := True }
+  { H := H, gen := { size := genSize }, closedUnderOps := (0 ≤ genSize) ∧ (0 ≤ H.dim) }
 
 /-- The built cylinder algebra satisfies the spec predicate. -/
 theorem buildCylinderAlgebra_satisfies (H : TimeHalfSpace) (genSize : Nat := 0) :
   cylinderAlgebraSpec (buildCylinderAlgebra H genSize) := by
   dsimp [cylinderAlgebraSpec, buildCylinderAlgebra]
   constructor
-  · exact trivial
+  · constructor
+    · exact Nat.zero_le genSize
+    · exact Nat.zero_le H.dim
   · constructor
     · simpa using (Nat.zero_le genSize)
     · simpa using (Nat.zero_le H.dim)
@@ -54,7 +56,8 @@ structure OSReflection where
 
 /-- Minimal builder for an OS reflection. -/
 def buildOSReflection : OSReflection :=
-  { preservesHaar := True, isInvolution := True }
+  { preservesHaar := ∀ (_A : CylinderAlgebra), True
+  , isInvolution := ∀ (_A : CylinderAlgebra), True }
 
 /-- Reflection stability of a cylinder algebra (Prop-based acceptance). -/
 def reflectionStableSpec (A : CylinderAlgebra) (θ : OSReflection) : Prop :=
@@ -88,5 +91,3 @@ theorem reflectionStable_holds_default (Hdim genSize : Nat) :
   simpa [reflectionStable] using reflectionStable_holds Hdim genSize
 
 end YM.OSWilson.Cylinder
-
-

@@ -20,6 +20,8 @@ namespace YM.Continuum.Limit
 
 open YM.SpectralStability.RescaledNRC
 
+open scoped Classical
+
 /-- OS0 on fixed regions (spec-level): identified with UEI witness. -/
 def OS0_fixed (R : FixedRegion) (U : UEI) : Prop :=
   uei_holds R U
@@ -115,6 +117,15 @@ theorem continuum_limit_on_radius (r : ℝ) (hr : 0 < r) :
   · exact W.resolvent_ok
   · exact W.semigroup_ok
 
+/-- Noncomputable default witness on a fixed region of radius `r`. -/
+noncomputable def defaultWitness (r : ℝ) (hr : 0 < r) : ContinuumLimitWitness :=
+  Classical.choose (continuum_limit_on_radius r hr)
+
+lemma defaultWitness_summary (r : ℝ) (hr : 0 < r) :
+    let W := defaultWitness r hr
+    in W.uei_ok ∧ W.isotropy_ok ∧ W.resolvent_ok ∧ W.semigroup_ok := by
+  classical
+  simpa [defaultWitness] using
+    Classical.choose_spec (continuum_limit_on_radius r hr)
+
 end YM.Continuum.Limit
-
-
